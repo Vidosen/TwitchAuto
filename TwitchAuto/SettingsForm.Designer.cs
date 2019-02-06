@@ -50,6 +50,7 @@
             resources.ApplyResources(this.linkCheckUpdates, "linkCheckUpdates");
             this.linkCheckUpdates.Name = "linkCheckUpdates";
             this.linkCheckUpdates.TabStop = true;
+            this.linkCheckUpdates.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkCheckUpdates_LinkClicked);
             // 
             // label2
             // 

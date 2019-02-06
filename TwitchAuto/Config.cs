@@ -22,9 +22,9 @@ namespace TwitchAuto
         public List<AccountData> Accounts { get; set; }
 
         [JsonProperty]
-        public int BrowserHeight { get; set; } = 405;
+        public int BrowserHeight { get; set; } = 280;
         [JsonProperty]
-        public int BrowserWidth { get; set; } = 720;
+        public int BrowserWidth { get; set; } = 400;
         [JsonProperty]
         public int BrowserLeft { get; set; } = 20;
         [JsonProperty]

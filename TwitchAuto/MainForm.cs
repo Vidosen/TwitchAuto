@@ -40,7 +40,7 @@ namespace TwitchAuto
             try
             {
                 TopDonates.Text = null;
-                DonateContainer container = JsonConvert.DeserializeObject<DonateContainer>(GET(""));
+                DonateContainer container = JsonConvert.DeserializeObject<DonateContainer>(GET("https://twitch-auto.ru/TopDonates","count=3"));
                 foreach (var donater in container.Donaters)
                 {
                     TopDonates.Text += $"{donater.Sender} - {donater.Amount:0.00}\t";
@@ -191,8 +191,14 @@ namespace TwitchAuto
                             {
                                 DriverContainer currContainer = OpenTwitch(account);
                                 currContainer.Id = ++counter;
-                                ResizeQuality(currContainer.Driver);
+                                if (!ResizeQuality(currContainer.Driver))
+                                {
+                                    Invoke(new Action(() => LogMessage($"При изменении разрешения трансляции для аккаунта {currContainer.Account.Login} возникла ошибка")));
+                                }
                                 Thread.Sleep(1000);
+                                currContainer.Driver.Manage().Window.Size = new Size(config.BrowserWidth, config.BrowserHeight);
+                                currContainer.Driver.Manage().Window.Position = new Point(config.BrowserLeft * currContainer.Id, config.BrowserTop * currContainer.Id);
+
                             }
                             catch (Exception ex)
                             {
@@ -224,7 +230,7 @@ namespace TwitchAuto
 
         DriverContainer OpenTwitch(AccountData account)
         {
-            ChromeOptions options = new ChromeOptions();
+            ChromeOptions options = new ChromeOptions { PageLoadStrategy = PageLoadStrategy.Normal, UnhandledPromptBehavior = UnhandledPromptBehavior.AcceptAndNotify };
             var chromeDriverService = ChromeDriverService.CreateDefaultService();
             chromeDriverService.HideCommandPromptWindow = true;
             IWebDriver driver = new ChromeDriver(chromeDriverService, options);
@@ -232,7 +238,6 @@ namespace TwitchAuto
             driversOnline.Add(container);
             try
             {
-                driver.Manage().Window.Size = new Size(config.BrowserWidth, config.BrowserHeight);
                 driver.Navigate().GoToUrl(StdLoginUrl);
                 foreach (var cookie in account.AccountCookies)
                 {
@@ -311,11 +316,12 @@ namespace TwitchAuto
 
         private void PrepareLoginForm()
         {
-            string script = "document.querySelector('button[data-a-target=\"login-button\"]').click();" +
-                "var el = document.getElementById('root');" +
+            string script = "var el = document.querySelector('button[data-a-target=\"login-button\"]');" +
+                "if(el != null) el.click();" +
+                "el = document.getElementById('root');" +
                 "el.parentNode.removeChild(el); " +
-                "var el = document.querySelector('div.modal__close-button');" +
-                "el.parentNode.removeChild(el); ";
+                "el = document.querySelector('div.modal__close-button');" +
+                "if (el != null) el.parentNode.removeChild(el); ";
             loginDriver.Navigate().GoToUrl(StdLoginUrl);
             IJavaScriptExecutor executor = (IJavaScriptExecutor)loginDriver;
             LoginTimer.Enabled = true;
@@ -355,14 +361,22 @@ namespace TwitchAuto
                 }
             }
         }
-        void ResizeQuality(IWebDriver driver)
+        bool ResizeQuality(IWebDriver driver)
         {
-            string script = "document.getElementsByClassName('qa-settings-button')[0].click();" +
-                            "document.getElementsByClassName('qa-quality-button')[0].click();" +
-                            "document.getElementsByClassName('pl-menu__section pl-menu__section--with-sep')[0].lastChild.firstChild.click();" +
-                            "document.querySelector(\"button[class='player-button player-button--volume qa-control-volume']\").click();";
+            string script = "if(document.getElementsByClassName('mute-button').length > 0) document.querySelector(\"button[class='player-button player-button--volume qa-control-volume']\").click();" +
+                            "var el = document.getElementsByClassName('qa-settings-button')[0];" +
+                            "if(el != null) el.click();" +
+                            "el = document.getElementsByClassName('qa-quality-button')[0];" +
+                            "if(el != null) el.click();" +
+                            "el = document.getElementsByClassName('pl-menu__section pl-menu__section--with-sep')[0];" +
+                            "if(el != null) {el.lastChild.firstChild.click(); return true;} else return false;";
             IJavaScriptExecutor executor = (IJavaScriptExecutor)driver;
-            executor.ExecuteScript(script);
+            object flag = executor.ExecuteScript(script);
+            if (Equals(flag, null))
+            {
+                return false;
+            }
+            return (bool)flag;
         }
 
         private void Stop_Click(object sender, EventArgs e)
