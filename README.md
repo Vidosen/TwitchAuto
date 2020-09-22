@@ -1,2 +1,2 @@
 # TwitchAuto
-Twitch Auto is a handy application to watching broadcasts from multiple accounts in a couple of clicks.
+Twitch Auto is a handy application for watching Twitch streams from multiple accounts in a couple of clicks.
